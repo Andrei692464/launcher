@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda ICRI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .glass-panel { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .unread-dot { width:10px; height:10px; background:#ef4444; border-radius:50%; display:inline-block; margin-left:6px; vertical-align:middle; }
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col items-center pt-24 sm:pt-32 pb-12 relative overflow-x-hidden">
+
+<div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+<div class="absolute top-[20%] right-[-10%] w-96 h-96 bg-teal-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+<div class="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+
+<!-- STEP 1 -->
+<div id="step-1" class="z-10 w-full max-w-md p-8 glass-panel rounded-3xl text-center transform transition-all">
+    <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+        <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+    </div>
+    <h2 class="text-3xl font-bold text-gray-900 mb-2">Bine ai venit!</h2>
+    <p class="text-gray-600 mb-8 font-medium">Ai un număr de telefon de ICRI?</p>
+    <button onclick="goToStep2()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-4 rounded-xl transition duration-300 shadow-lg">DA, am un număr</button>
+</div>
+
+<!-- STEP 2 -->
+<div id="step-2" class="hidden z-10 w-full max-w-md p-8 glass-panel rounded-3xl transform transition-all">
+    <button onclick="goToStep1()" class="text-gray-500 hover:text-gray-800 mb-6 flex items-center gap-1 font-medium transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Înapoi
+    </button>
+    <h2 class="text-2xl font-bold text-gray-900 mb-2">Conectare Rețea ICRI</h2>
+    <p class="text-gray-500 text-sm mb-6">Care este numărul tău de telefon ICRI?</p>
+    <form id="login-form" onsubmit="handleLogin(event)" class="space-y-6">
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Număr de Telefon</label>
+            <div class="flex items-center bg-gray-50 border border-gray-300 rounded-xl overflow-hidden focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition">
+                <span class="px-4 py-3 bg-gray-100 text-gray-600 font-mono font-bold text-lg border-r border-gray-300">0003</span>
+                <input type="text" id="phone-input" required maxlength="8" pattern="\d{8}" class="w-full px-4 py-3 bg-transparent outline-none font-mono text-lg tracking-widest text-gray-900" placeholder="11112222" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            </div>
+        </div>
+        <div id="login-error" class="hidden text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 font-medium text-center"></div>
+        <button type="submit" id="btn-login" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition duration-300 shadow-lg flex justify-center items-center gap-2">
+            Caută numărul în sistem
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </button>
+    </form>
+</div>
+
+<!-- APP DASHBOARD -->
+<div id="app-dashboard" class="hidden z-10 w-full max-w-5xl min-h-[85vh] bg-white rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden border border-gray-100">
+
+    <!-- Sidebar -->
+    <div class="w-full md:w-1/3 bg-gray-50 border-r border-gray-200 p-6 flex flex-col">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-bold text-gray-800">Profil ICRI</h2>
+            <button onclick="handleLogout()" class="text-sm text-red-500 hover:text-red-700 font-medium p-2 bg-red-50 rounded-lg transition">Deconectare</button>
+        </div>
+        <div class="flex flex-col items-center text-center space-y-4 mb-8">
+            <div class="relative group cursor-pointer">
+                <img id="my-avatar" src="" alt="Avatar" class="w-28 h-28 rounded-full object-cover border-4 border-white shadow-md">
+                <div class="absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200" onclick="toggleProfileEdit()">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                </div>
+            </div>
+            <div>
+                <h3 id="my-name" class="text-xl font-bold text-gray-900">Nume Utilizator</h3>
+                <p id="my-phone-display" class="text-indigo-600 font-mono font-medium mt-1">0003 **** ****</p>
+            </div>
+        </div>
+        <div id="edit-profile-box" class="hidden bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
+            <h4 class="text-sm font-bold text-gray-700 mb-3">Editează Profilul</h4>
+            <div class="space-y-3">
+                <input type="text" id="edit-name" placeholder="Numele tău" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="url" id="edit-avatar" placeholder="URL Poză de profil" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                <div class="flex gap-2">
+                    <button onclick="saveProfile()" class="flex-1 bg-blue-600 text-white text-sm font-medium py-2 rounded-lg hover:bg-blue-700 transition">Salvează</button>
+                    <button onclick="toggleProfileEdit()" class="flex-1 bg-gray-200 text-gray-700 text-sm font-medium py-2 rounded-lg hover:bg-gray-300 transition">Anulează</button>
+                </div>
+            </div>
+        </div>
+        <div class="mt-auto">
+            <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                <p class="text-xs text-indigo-800 font-medium">Baza de date partajată ICRI. Conexiune activă & sincronizată.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="w-full md:w-2/3 p-6 md:p-8 flex flex-col bg-white h-full overflow-y-auto">
+        <!-- Tab Buttons -->
+        <div class="flex gap-2 mb-6 border-b border-gray-100 pb-3 flex-wrap">
+            <button onclick="switchTab('contacts')" id="tab-contacts-btn" class="px-4 py-2 rounded-xl font-bold text-sm bg-indigo-600 text-white transition shadow-sm">Contactele Mele</button>
+            <button onclick="switchTab('whos-added')" id="tab-added-btn" class="px-4 py-2 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition">Cine m-a adăugat (<span id="added-count">0</span>)</button>
+            <button onclick="switchTab('groups')" id="tab-groups-btn" class="relative px-4 py-2 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+                Grupuri <span id="groups-unread-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full items-center justify-center flex">!</span>
+            </button>
+        </div>
+
+        <!-- Tab Contacte -->
+        <div id="tab-contacts" class="flex flex-col flex-1">
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-gray-900">Agenda Mea</h1>
+                    <p class="text-gray-500 text-xs mt-0.5">Gestionează contactele și trimite mesaje în timp real.</p>
+                </div>
+                <button onclick="toggleAddContact()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-md flex items-center gap-2 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Adaugă Contact
+                </button>
+            </div>
+            <div id="add-contact-box" class="hidden bg-gray-50 p-5 rounded-2xl border border-gray-200 mb-6 transition-all">
+                <form onsubmit="handleAddContact(event)" class="flex flex-col sm:flex-row gap-3 items-end">
+                    <div class="w-full">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Nume Personalizat</label>
+                        <input type="text" id="new-contact-name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" placeholder="Ex: Andrei Prieten">
+                    </div>
+                    <div class="w-full">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Număr Telefon (ex: 000311112222)</label>
+                        <input type="text" id="new-contact-phone" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-mono" placeholder="0003XXXXXXXX">
+                    </div>
+                    <button type="submit" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-5 rounded-lg transition text-sm whitespace-nowrap">Salvează</button>
+                </form>
+            </div>
+            <div id="contacts-list" class="space-y-3 flex-1 overflow-y-auto">
+                <div class="flex items-center justify-center h-32 text-gray-400 text-sm">Încărcare agendă...</div>
+            </div>
+        </div>
+
+        <!-- Tab Cine m-a adăugat -->
+        <div id="tab-added" class="hidden flex flex-col flex-1">
+            <div class="mb-6">
+                <h1 class="text-2xl font-extrabold text-gray-900">Cine te-a adăugat</h1>
+                <p class="text-gray-500 text-xs mt-0.5">Utilizatorii care au numărul tău ICRI salvat în agendele lor.</p>
+            </div>
+            <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl mb-4 text-xs text-blue-800">
+                <span class="font-bold">Notă:</span> Lista se actualizează când un alt utilizator îți salvează numărul în agendă.
+            </div>
+            <div id="whos-added-list" class="space-y-3 flex-1 overflow-y-auto flex flex-col items-center justify-center min-h-[250px]">
+                <div class="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        </div>
+
+        <!-- Tab Grupuri -->
+        <div id="tab-groups" class="hidden flex flex-col flex-1">
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-gray-900">Grupurile Mele</h1>
+                    <p class="text-gray-500 text-xs mt-0.5">Creează grupuri și trimite mesaje către mai mulți utilizatori.</p>
+                </div>
+                <button onclick="openCreateGroup()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-md flex items-center gap-2 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Grup Nou
+                </button>
+            </div>
+            <div id="groups-list" class="space-y-3 flex-1 overflow-y-auto">
+                <div class="flex items-center justify-center h-32 text-gray-400 text-sm">Încărcare grupuri...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CHAT MODAL (1-la-1) -->
+<div id="chat-modal" class="hidden fixed inset-0 z-50 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg h-[80vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+        <div class="bg-indigo-600 p-4 text-white flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <img id="chat-peer-avatar" src="" class="w-10 h-10 rounded-full border border-indigo-400 object-cover">
+                <div>
+                    <h3 id="chat-peer-name" class="font-bold text-sm">Nume Contact</h3>
+                    <p id="chat-peer-phone" class="font-mono text-xs opacity-80">0003****</p>
+                </div>
+            </div>
+            <button onclick="closeChat()" class="text-white hover:bg-indigo-700 p-2 rounded-xl transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50"></div>
+        <form onsubmit="handleSendMessage(event)" class="p-3 bg-white border-t border-gray-200 flex gap-2">
+            <input type="text" id="chat-input" required placeholder="Scrie un mesaj..." class="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl transition text-sm shadow-md">Trimite</button>
+        </form>
+    </div>
+</div>
+
+<!-- GRUP CHAT MODAL -->
+<div id="group-chat-modal" class="hidden fixed inset-0 z-50 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-2xl h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+        <div class="bg-emerald-600 p-4 text-white flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-emerald-400 flex items-center justify-center font-bold text-lg" id="group-chat-icon">G</div>
+                <div>
+                    <h3 id="group-chat-name" class="font-bold text-sm">Grup</h3>
+                    <p id="group-chat-members-count" class="text-xs opacity-80">membri</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="openGroupInfo()" class="text-white hover:bg-emerald-700 p-2 rounded-xl transition text-xs font-bold">Info / Membri</button>
+                <button onclick="closeGroupChat()" class="text-white hover:bg-emerald-700 p-2 rounded-xl transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div id="group-chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50"></div>
+        <form onsubmit="handleSendGroupMessage(event)" class="p-3 bg-white border-t border-gray-200 flex gap-2">
+            <input type="text" id="group-chat-input" required placeholder="Scrie un mesaj în grup..." class="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl transition text-sm shadow-md">Trimite</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL CREARE GRUP -->
+<div id="create-group-modal" class="hidden fixed inset-0 z-50 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 border border-gray-200">
+        <h3 class="text-xl font-bold text-gray-900 mb-6">Creează Grup Nou</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Nume Grup</label>
+                <input type="text" id="new-group-name" class="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" placeholder="Ex: Familia, Prietenii...">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Adaugă Membri (numere separate prin virgulă)</label>
+                <input type="text" id="new-group-members" class="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-mono" placeholder="000311112222, 000339568364">
+                <p class="text-xs text-gray-400 mt-1">Tu ești adăugat automat ca owner.</p>
+            </div>
+            <div id="create-group-error" class="hidden text-xs text-red-600 bg-red-50 p-3 rounded-lg border border-red-100"></div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeCreateGroup()" class="flex-1 bg-gray-100 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-200 transition text-sm">Anulează</button>
+                <button onclick="handleCreateGroup()" class="flex-1 bg-indigo-600 text-white font-bold py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm">Creează Grupul</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL INFO GRUP (membri, admin, scoatere) -->
+<div id="group-info-modal" class="hidden fixed inset-0 z-50 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 border border-gray-200 max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-900">Info Grup</h3>
+            <button onclick="closeGroupInfo()" class="text-gray-400 hover:text-gray-600 p-2 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div id="group-info-content"></div>
+        <!-- Adaugă membru (doar admin/owner) -->
+        <div id="add-member-box" class="hidden mt-4 pt-4 border-t border-gray-100">
+            <p class="text-xs font-bold text-gray-600 mb-2">Adaugă Membru</p>
+            <div class="flex gap-2">
+                <input type="text" id="add-member-input" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono outline-none focus:ring-2 focus:ring-indigo-400" placeholder="0003XXXXXXXX">
+                <button onclick="handleAddMember()" class="bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-indigo-700 transition">Adaugă</button>
+            </div>
+        </div>
+        <!-- Părăsire grup -->
+        <div class="mt-4 pt-4 border-t border-gray-100">
+            <button onclick="handleLeaveGroup()" class="w-full bg-red-50 text-red-600 font-bold py-2.5 rounded-xl hover:bg-red-100 transition text-sm">Părăsește Grupul</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://dkbslssefqvjwcotxcfg.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_cEnanXvgCQR3DLJDjQ9ytA_u0ZUI2Lv';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentPhone = null;
+    let currentUserProfile = null;
+    let activeChatContact = null;
+    let activeGroup = null;
+    let chatPollingInterval = null;
+    let groupChatPollingInterval = null;
+    let unreadPollingInterval = null;
+
+    // ==================== LOGIN ====================
+    function goToStep2() {
+        document.getElementById('step-1').classList.add('hidden');
+        document.getElementById('step-2').classList.remove('hidden');
+        document.getElementById('phone-input').focus();
+    }
+    function goToStep1() {
+        document.getElementById('step-2').classList.add('hidden');
+        document.getElementById('step-1').classList.remove('hidden');
+        document.getElementById('login-error').classList.add('hidden');
+    }
+    function formatDisplayPhone(p) {
+        if (!p || p.length < 12) return p;
+        return `${p.substring(0,4)} ${p.substring(4,8)} ${p.substring(8,12)}`;
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const inputVal = document.getElementById('phone-input').value;
+        const errorDiv = document.getElementById('login-error');
+        const btn = document.getElementById('btn-login');
+        if (inputVal.length !== 8) {
+            errorDiv.textContent = 'Numărul trebuie să aibă exact 8 cifre după prefixul 0003.';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+        const fullPhone = '0003' + inputVal;
+        errorDiv.classList.add('hidden');
+        btn.innerHTML = 'Se verifică în sistem...';
+        btn.disabled = true;
+        try {
+            let { data, error } = await supabaseClient.from('icri_phones').select('*').eq('phone_number', fullPhone).maybeSingle();
+            if (error) throw error;
+            if (!data) {
+                errorDiv.textContent = 'Numărul ' + formatDisplayPhone(fullPhone) + ' nu există în rețeaua ICRI. Contactează administratorul.';
+                errorDiv.classList.remove('hidden');
+                btn.innerHTML = 'Caută numărul în sistem <svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>';
+                btn.disabled = false;
+                return;
+            }
+            currentPhone = data.phone_number;
+            currentUserProfile = data;
+            document.getElementById('step-2').classList.add('hidden');
+            document.getElementById('app-dashboard').classList.remove('hidden');
+            updateProfileUI();
+            fetchContacts();
+            fetchWhosAddedMe();
+            startUnreadPolling();
+        } catch (error) {
+            errorDiv.textContent = 'Eroare: ' + (error.message || 'Verifică baza de date.');
+            errorDiv.classList.remove('hidden');
+            btn.innerHTML = 'Caută numărul în sistem';
+            btn.disabled = false;
+        }
+    }
+
+    function handleLogout() {
+        currentPhone = null;
+        currentUserProfile = null;
+        if (unreadPollingInterval) clearInterval(unreadPollingInterval);
+        document.getElementById('app-dashboard').classList.add('hidden');
+        document.getElementById('phone-input').value = '';
+        goToStep1();
+    }
+
+    function updateProfileUI() {
+        document.getElementById('my-name').textContent = currentUserProfile.display_name || 'Fără Nume';
+        document.getElementById('my-phone-display').textContent = formatDisplayPhone(currentPhone);
+        const avatarImg = currentUserProfile.avatar_url || `https://ui-avatars.com/api/?name=${currentUserProfile.display_name}&background=random`;
+        document.getElementById('my-avatar').src = avatarImg;
+        document.getElementById('edit-name').value = currentUserProfile.display_name || '';
+        document.getElementById('edit-avatar').value = currentUserProfile.avatar_url || '';
+    }
+    function toggleProfileEdit() { document.getElementById('edit-profile-box').classList.toggle('hidden'); }
+    async function saveProfile() {
+        const newName = document.getElementById('edit-name').value;
+        const newAvatar = document.getElementById('edit-avatar').value;
+        try {
+            const { data, error } = await supabaseClient.from('icri_phones').update({ display_name: newName, avatar_url: newAvatar }).eq('phone_number', currentPhone).select().single();
+            if (error) throw error;
+            currentUserProfile = data;
+            updateProfileUI();
+            toggleProfileEdit();
+        } catch (error) { alert('Eroare la actualizarea profilului: ' + error.message); }
+    }
+
+    // ==================== TABS ====================
+    function switchTab(tab) {
+        const tabs = ['contacts', 'whos-added', 'groups'];
+        tabs.forEach(t => {
+            const btn = document.getElementById('tab-' + t + (t === 'whos-added' ? '' : '') + '-btn') || document.getElementById('tab-' + t.replace('-','') + '-btn');
+            const div = document.getElementById('tab-' + t);
+            if (div) div.classList.add('hidden');
+        });
+        document.getElementById('tab-contacts').classList.add('hidden');
+        document.getElementById('tab-added').classList.add('hidden');
+        document.getElementById('tab-groups').classList.add('hidden');
+        document.getElementById('tab-contacts-btn').className = 'px-4 py-2 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
+        document.getElementById('tab-added-btn').className = 'px-4 py-2 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
+        document.getElementById('tab-groups-btn').className = 'relative px-4 py-2 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
+
+        if (tab === 'contacts') {
+            document.getElementById('tab-contacts').classList.remove('hidden');
+            document.getElementById('tab-contacts-btn').className = 'px-4 py-2 rounded-xl font-bold text-sm bg-indigo-600 text-white transition shadow-sm';
+            fetchContacts();
+        } else if (tab === 'whos-added') {
+            document.getElementById('tab-added').classList.remove('hidden');
+            document.getElementById('tab-added-btn').className = 'px-4 py-2 rounded-xl font-bold text-sm bg-indigo-600 text-white transition shadow-sm';
+            fetchWhosAddedMe();
+        } else if (tab === 'groups') {
+            document.getElementById('tab-groups').classList.remove('hidden');
+            document.getElementById('tab-groups-btn').className = 'relative px-4 py-2 rounded-xl font-bold text-sm bg-indigo-600 text-white transition shadow-sm';
+            document.getElementById('groups-unread-badge').classList.add('hidden');
+            fetchGroups();
+        }
+    }
+
+    // ==================== NOTIFICARI UNREAD ====================
+    function startUnreadPolling() {
+        checkUnreadMessages();
+        unreadPollingInterval = setInterval(checkUnreadMessages, 5000);
+    }
+
+    async function checkUnreadMessages() {
+        if (!currentPhone) return;
+        try {
+            // Mesaje directe necitite
+            const { data: unreadDirect } = await supabaseClient
+                .from('icri_messages')
+                .select('id, sender_phone')
+                .eq('receiver_phone', currentPhone)
+                .eq('is_read', false);
+
+            // Afișăm punct roșu pe contactele cu mesaje necitite
+            if (unreadDirect && unreadDirect.length > 0) {
+                const senders = [...new Set(unreadDirect.map(m => m.sender_phone))];
+                senders.forEach(phone => {
+                    const dot = document.getElementById('unread-dot-' + phone);
+                    if (dot) dot.classList.remove('hidden');
+                });
+            }
+
+            // Mesaje grup necitite (mesaje noi din ultimele 60s care nu sunt de la mine)
+            const { data: myGroups } = await supabaseClient
+                .from('icri_group_members')
+                .select('group_id')
+                .eq('phone', currentPhone);
+
+            if (myGroups && myGroups.length > 0) {
+                const groupIds = myGroups.map(g => g.group_id);
+                const since = new Date(Date.now() - 60000).toISOString();
+                const { data: newGroupMsgs } = await supabaseClient
+                    .from('icri_group_messages')
+                    .select('id')
+                    .in('group_id', groupIds)
+                    .neq('sender_phone', currentPhone)
+                    .gte('created_at', since);
+
+                if (newGroupMsgs && newGroupMsgs.length > 0) {
+                    document.getElementById('groups-unread-badge').classList.remove('hidden');
+                    document.getElementById('groups-unread-badge').classList.add('flex');
+                }
+            }
+        } catch(e) {}
+    }
+
+    // ==================== CONTACTE ====================
+    function toggleAddContact() { document.getElementById('add-contact-box').classList.toggle('hidden'); }
+
+    async function fetchContacts() {
+        const container = document.getElementById('contacts-list');
+        try {
+            const { data, error } = await supabaseClient.from('icri_contacts').select('*').eq('owner_phone', currentPhone).order('created_at', { ascending: false });
+            if (error) throw error;
+            renderContacts(data);
+        } catch (error) {
+            container.innerHTML = `<p class="text-red-500 p-4 text-sm">Eroare la încărcarea agendei: ${error.message}</p>`;
+        }
+    }
+
+    async function renderContacts(contacts) {
+        const container = document.getElementById('contacts-list');
+        container.innerHTML = '';
+        if (!contacts || contacts.length === 0) {
+            container.innerHTML = `<div class="text-center py-16 text-gray-400"><p class="text-5xl mb-4">📒</p><p class="font-semibold">Agenda ta e goală.</p><p class="text-xs mt-1">Adaugă un contact pentru a trimite mesaje.</p></div>`;
+            return;
+        }
+        for (const c of contacts) {
+            let { data: peerData } = await supabaseClient.from('icri_phones').select('*').eq('phone_number', c.contact_phone).maybeSingle();
+            const name = c.custom_name;
+            const avatar = peerData?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+
+            const card = document.createElement('div');
+            card.className = 'flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-2xl shadow-sm hover:border-indigo-200 transition';
+            card.innerHTML = `
+                <div class="flex items-center gap-3.5">
+                    <div class="relative">
+                        <img src="${avatar}" class="w-11 h-11 rounded-full border border-gray-200 object-cover">
+                        <span id="unread-dot-${c.contact_phone}" class="hidden absolute -top-1 -right-1 unread-dot"></span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-900 text-sm">${escapeHtml(name)}</h4>
+                        <p class="text-xs font-mono text-indigo-600">${formatDisplayPhone(c.contact_phone)}</p>
+                    </div>
+                </div>
+                <button onclick="openChat('${c.contact_phone}', '${escapeHtml(name)}', '${avatar}')" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z"></path></svg>
+                    Mesaj
+                </button>`;
+            container.appendChild(card);
+        }
+        checkUnreadMessages();
+    }
+
+    async function handleAddContact(e) {
+        e.preventDefault();
+        const name = document.getElementById('new-contact-name').value.trim();
+        const phone = document.getElementById('new-contact-phone').value.trim();
+        if (!name || !phone) return;
+        const { data: exists } = await supabaseClient.from('icri_phones').select('phone_number').eq('phone_number', phone).maybeSingle();
+        if (!exists) { alert('Numărul ' + phone + ' nu există în rețeaua ICRI!'); return; }
+        try {
+            const { error } = await supabaseClient.from('icri_contacts').insert([{ owner_phone: currentPhone, contact_phone: phone, custom_name: name }]);
+            if (error) throw error;
+            document.getElementById('new-contact-name').value = '';
+            document.getElementById('new-contact-phone').value = '';
+            document.getElementById('add-contact-box').classList.add('hidden');
+            fetchContacts();
+        } catch (error) { alert('Eroare: ' + error.message); }
+    }
+
+    // ==================== CINE M-A ADĂUGAT ====================
+    async function fetchWhosAddedMe() {
+        const container = document.getElementById('whos-added-list');
+        container.innerHTML = '<div class="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>';
+        try {
+            const { data, error } = await supabaseClient.from('icri_contacts').select('*').eq('contact_phone', currentPhone);
+            if (error) throw error;
+            const count = data ? data.length : 0;
+            document.getElementById('added-count').textContent = count;
+            container.innerHTML = '';
+            if (!data || data.length === 0) {
+                container.innerHTML = `<div class="text-center py-16 text-gray-400"><p class="text-5xl mb-4">👁️</p><p class="font-semibold">Nimeni nu te-a adăugat încă.</p><p class="text-xs mt-1">Numărul tău: <span class="font-mono font-bold">${formatDisplayPhone(currentPhone)}</span></p></div>`;
+                return;
+            }
+            for (const item of data) {
+                let { data: ownerData } = await supabaseClient.from('icri_phones').select('*').eq('phone_number', item.owner_phone).maybeSingle();
+                const name = ownerData ? ownerData.display_name : 'Utilizator ICRI';
+                const avatar = ownerData ? ownerData.avatar_url : `https://ui-avatars.com/api/?name=${name}&background=random`;
+                const card = document.createElement('div');
+                card.className = 'flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm';
+                card.innerHTML = `
+                    <div class="flex items-center gap-3.5">
+                        <img src="${avatar}" class="w-11 h-11 rounded-full border border-gray-200 object-cover">
+                        <div>
+                            <h4 class="font-bold text-gray-900 text-sm">${escapeHtml(name)}</h4>
+                            <p class="text-xs font-mono text-indigo-600 font-semibold">Te-a salvat cu numele: "${escapeHtml(item.custom_name)}"</p>
+                        </div>
+                    </div>
+                    <button onclick="openChat('${item.owner_phone}', '${escapeHtml(name)}', '${avatar}')" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition">Mesaj</button>`;
+                container.appendChild(card);
+            }
+        } catch (error) { container.innerHTML = `<p class="text-red-500 text-sm">Eroare: ${error.message}</p>`; }
+    }
+
+    // ==================== CHAT 1-LA-1 ====================
+    async function openChat(phone, name, avatar) {
+        activeChatContact = { phone, name, avatar };
+        document.getElementById('chat-peer-name').textContent = name;
+        document.getElementById('chat-peer-phone').textContent = formatDisplayPhone(phone);
+        document.getElementById('chat-peer-avatar').src = avatar;
+        document.getElementById('chat-modal').classList.remove('hidden');
+        // Marchează ca citite
+        await supabaseClient.from('icri_messages').update({ is_read: true }).eq('receiver_phone', currentPhone).eq('sender_phone', phone);
+        // Ascunde dot
+        const dot = document.getElementById('unread-dot-' + phone);
+        if (dot) dot.classList.add('hidden');
+        await fetchMessages();
+        if (chatPollingInterval) clearInterval(chatPollingInterval);
+        chatPollingInterval = setInterval(async () => {
+            if (activeChatContact) {
+                await fetchMessages();
+                await supabaseClient.from('icri_messages').update({ is_read: true }).eq('receiver_phone', currentPhone).eq('sender_phone', activeChatContact.phone);
+            }
+        }, 3000);
+    }
+
+    function closeChat() {
+        document.getElementById('chat-modal').classList.add('hidden');
+        if (chatPollingInterval) { clearInterval(chatPollingInterval); chatPollingInterval = null; }
+        activeChatContact = null;
+    }
+
+    async function fetchMessages() {
+        if (!activeChatContact) return;
+        const container = document.getElementById('chat-messages');
+        try {
+            const { data, error } = await supabaseClient.from('icri_messages').select('*');
+            if (error) throw error;
+            const currentClean = String(currentPhone || '').trim();
+            const peerClean = String(activeChatContact.phone || '').trim();
+            const filteredData = (data || []).filter(msg => {
+                const s = String(msg.sender_phone || '').trim();
+                const r = String(msg.receiver_phone || '').trim();
+                return (s === currentClean && r === peerClean) || (s === peerClean && r === currentClean);
+            }).sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+            container.innerHTML = '';
+            if (filteredData.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-400 text-xs py-8">Niciun mesaj încă. Trimite primul mesaj!</div>`;
+                return;
+            }
+            filteredData.forEach(msg => {
+                const isMe = String(msg.sender_phone || '').trim() === currentClean;
+                const div = document.createElement('div');
+                div.className = `flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`;
+                const timeStr = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                div.innerHTML = `<div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none shadow-sm'}"><p>${escapeHtml(msg.message_text || '')}</p><span class="block text-[10px] text-right mt-1 ${isMe ? 'text-indigo-200' : 'text-gray-400'}">${timeStr}</span></div>`;
+                container.appendChild(div);
+            });
+            container.scrollTop = container.scrollHeight;
+        } catch (error) { console.error('Eroare mesaje:', error); }
+    }
+
+    async function handleSendMessage(e) {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (!text || !activeChatContact) return;
+        input.value = '';
+        try {
+            const { error } = await supabaseClient.from('icri_messages').insert([{
+                sender_phone: String(currentPhone).trim(),
+                receiver_phone: String(activeChatContact.phone).trim(),
+                message_text: text,
+                is_read: false,
+                created_at: new Date().toISOString()
+            }]);
+            if (error) throw error;
+            await fetchMessages();
+        } catch (error) { console.error('Eroare trimitere:', error); }
+    }
+
+    // ==================== GRUPURI ====================
+    async function fetchGroups() {
+        const container = document.getElementById('groups-list');
+        container.innerHTML = '<div class="flex items-center justify-center h-32 text-gray-400 text-sm">Încărcare grupuri...</div>';
+        try {
+            const { data: memberships, error } = await supabaseClient.from('icri_group_members').select('group_id, role').eq('phone', currentPhone);
+            if (error) throw error;
+            if (!memberships || memberships.length === 0) {
+                container.innerHTML = `<div class="text-center py-16 text-gray-400"><p class="text-5xl mb-4">👥</p><p class="font-semibold">Nu ești în niciun grup.</p><p class="text-xs mt-1">Creează un grup nou sau așteaptă să fii adăugat.</p></div>`;
+                return;
+            }
+            container.innerHTML = '';
+            for (const m of memberships) {
+                const { data: group } = await supabaseClient.from('icri_groups').select('*').eq('id', m.group_id).single();
+                if (!group) continue;
+                const { data: members } = await supabaseClient.from('icri_group_members').select('phone').eq('group_id', group.id);
+                const memberCount = members ? members.length : 0;
+                const card = document.createElement('div');
+                card.className = 'flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-2xl shadow-sm hover:border-emerald-200 transition cursor-pointer';
+                card.onclick = () => openGroupChat(group, m.role);
+                card.innerHTML = `
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-11 h-11 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-lg">${escapeHtml(group.name.charAt(0).toUpperCase())}</div>
+                        <div>
+                            <h4 class="font-bold text-gray-900 text-sm">${escapeHtml(group.name)}</h4>
+                            <p class="text-xs text-gray-500">${memberCount} membri · Rolul tău: <span class="font-semibold ${m.role === 'owner' ? 'text-yellow-600' : m.role === 'admin' ? 'text-indigo-600' : 'text-gray-500'}">${m.role === 'owner' ? '👑 Owner' : m.role === 'admin' ? '⚙️ Admin' : 'Membru'}</span></p>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>`;
+                container.appendChild(card);
+            }
+        } catch (error) { container.innerHTML = `<p class="text-red-500 text-sm p-4">Eroare: ${error.message}</p>`; }
+    }
+
+    function openCreateGroup() { document.getElementById('create-group-modal').classList.remove('hidden'); }
+    function closeCreateGroup() { document.getElementById('create-group-modal').classList.add('hidden'); }
+
+    async function handleCreateGroup() {
+        const name = document.getElementById('new-group-name').value.trim();
+        const membersRaw = document.getElementById('new-group-members').value.trim();
+        const errorEl = document.getElementById('create-group-error');
+        if (!name) { errorEl.textContent = 'Introduceți un nume pentru grup.'; errorEl.classList.remove('hidden'); return; }
+        errorEl.classList.add('hidden');
+        try {
+            const { data: group, error: gErr } = await supabaseClient.from('icri_groups').insert([{ name, created_by: currentPhone }]).select().single();
+            if (gErr) throw gErr;
+            // Adaugă owner
+            await supabaseClient.from('icri_group_members').insert([{ group_id: group.id, phone: currentPhone, role: 'owner' }]);
+            // Adaugă membrii
+            if (membersRaw) {
+                const phones = membersRaw.split(',').map(p => p.trim()).filter(p => p && p !== currentPhone);
+                for (const phone of phones) {
+                    const { data: exists } = await supabaseClient.from('icri_phones').select('phone_number').eq('phone_number', phone).maybeSingle();
+                    if (exists) {
+                        await supabaseClient.from('icri_group_members').insert([{ group_id: group.id, phone, role: 'member' }]);
+                    }
+                }
+            }
+            closeCreateGroup();
+            document.getElementById('new-group-name').value = '';
+            document.getElementById('new-group-members').value = '';
+            fetchGroups();
+        } catch (error) { errorEl.textContent = 'Eroare: ' + error.message; errorEl.classList.remove('hidden'); }
+    }
+
+    async function openGroupChat(group, myRole) {
+        activeGroup = { ...group, myRole };
+        document.getElementById('group-chat-name').textContent = group.name;
+        document.getElementById('group-chat-icon').textContent = group.name.charAt(0).toUpperCase();
+        document.getElementById('group-chat-modal').classList.remove('hidden');
+        await fetchGroupMessages();
+        await updateGroupMembersCount();
+        if (groupChatPollingInterval) clearInterval(groupChatPollingInterval);
+        groupChatPollingInterval = setInterval(() => { if (activeGroup) fetchGroupMessages(); }, 3000);
+    }
+
+    function closeGroupChat() {
+        document.getElementById('group-chat-modal').classList.add('hidden');
+        if (groupChatPollingInterval) { clearInterval(groupChatPollingInterval); groupChatPollingInterval = null; }
+        activeGroup = null;
+    }
+
+    async function updateGroupMembersCount() {
+        if (!activeGroup) return;
+        const { data } = await supabaseClient.from('icri_group_members').select('phone').eq('group_id', activeGroup.id);
+        document.getElementById('group-chat-members-count').textContent = (data ? data.length : 0) + ' membri';
+    }
+
+    async function fetchGroupMessages() {
+        if (!activeGroup) return;
+        const container = document.getElementById('group-chat-messages');
+        try {
+            const { data, error } = await supabaseClient.from('icri_group_messages').select('*').eq('group_id', activeGroup.id).order('created_at', { ascending: true });
+            if (error) throw error;
+            container.innerHTML = '';
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 text-xs py-8">Niciun mesaj în grup. Fii primul care scrie!</div>';
+                return;
+            }
+            for (const msg of data) {
+                const isMe = msg.sender_phone === currentPhone;
+                const div = document.createElement('div');
+                div.className = `flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`;
+                let senderName = msg.sender_phone;
+                if (!isMe) {
+                    const { data: p } = await supabaseClient.from('icri_phones').select('display_name').eq('phone_number', msg.sender_phone).maybeSingle();
+                    if (p) senderName = p.display_name;
+                }
+                const timeStr = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                div.innerHTML = `<div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${isMe ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none shadow-sm'}">
+                    ${!isMe ? `<p class="text-[10px] font-bold text-emerald-600 mb-1">${escapeHtml(senderName)}</p>` : ''}
+                    <p>${escapeHtml(msg.message_text || '')}</p>
+                    <span class="block text-[10px] text-right mt-1 ${isMe ? 'text-emerald-200' : 'text-gray-400'}">${timeStr}</span>
+                </div>`;
+                container.appendChild(div);
+            }
+            container.scrollTop = container.scrollHeight;
+        } catch (error) { console.error('Eroare mesaje grup:', error); }
+    }
+
+    async function handleSendGroupMessage(e) {
+        e.preventDefault();
+        const input = document.getElementById('group-chat-input');
+        const text = input.value.trim();
+        if (!text || !activeGroup) return;
+        input.value = '';
+        try {
+            const { error } = await supabaseClient.from('icri_group_messages').insert([{ group_id: activeGroup.id, sender_phone: currentPhone, message_text: text }]);
+            if (error) throw error;
+            await fetchGroupMessages();
+        } catch (error) { console.error('Eroare trimitere grup:', error); }
+    }
+
+    // ==================== INFO GRUP (membri, admin, scoatere) ====================
+    async function openGroupInfo() {
+        document.getElementById('group-info-modal').classList.remove('hidden');
+        await renderGroupInfo();
+    }
+    function closeGroupInfo() { document.getElementById('group-info-modal').classList.add('hidden'); }
+
+    async function renderGroupInfo() {
+        if (!activeGroup) return;
+        const content = document.getElementById('group-info-content');
+        const addBox = document.getElementById('add-member-box');
+        const isAdminOrOwner = activeGroup.myRole === 'owner' || activeGroup.myRole === 'admin';
+
+        if (isAdminOrOwner) addBox.classList.remove('hidden');
+        else addBox.classList.add('hidden');
+
+        const { data: members } = await supabaseClient.from('icri_group_members').select('*').eq('group_id', activeGroup.id);
+        if (!members) return;
+        content.innerHTML = `<p class="text-xs font-bold text-gray-500 uppercase mb-3">${members.length} Membri</p>`;
+
+        for (const m of members) {
+            const { data: p } = await supabaseClient.from('icri_phones').select('*').eq('phone_number', m.phone).maybeSingle();
+            const name = p ? p.display_name : m.phone;
+            const avatar = p?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+            const isMe = m.phone === currentPhone;
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-xl mb-2';
+            div.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <img src="${avatar}" class="w-9 h-9 rounded-full object-cover">
+                    <div>
+                        <p class="text-sm font-bold text-gray-900">${escapeHtml(name)} ${isMe ? '<span class="text-gray-400 font-normal">(tu)</span>' : ''}</p>
+                        <p class="text-xs text-gray-400 font-mono">${formatDisplayPhone(m.phone)}</p>
+                    </div>
+                </div>
+                <div class="flex gap-1 items-center">
+                    <span class="text-xs font-bold px-2 py-1 rounded-lg ${m.role === 'owner' ? 'bg-yellow-100 text-yellow-700' : m.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}">${m.role === 'owner' ? '👑' : m.role === 'admin' ? '⚙️' : '👤'} ${m.role}</span>
+                    ${isAdminOrOwner && !isMe && m.role !== 'owner' ? `
+                        ${activeGroup.myRole === 'owner' && m.role !== 'admin' ? `<button onclick="handleMakeAdmin('${m.phone}')" class="text-xs bg-indigo-50 text-indigo-600 font-bold px-2 py-1 rounded-lg hover:bg-indigo-100 transition">+Admin</button>` : ''}
+                        ${activeGroup.myRole === 'owner' && m.role === 'admin' ? `<button onclick="handleRemoveAdmin('${m.phone}')" class="text-xs bg-orange-50 text-orange-600 font-bold px-2 py-1 rounded-lg hover:bg-orange-100 transition">-Admin</button>` : ''}
+                        <button onclick="handleRemoveMember('${m.phone}', '${escapeHtml(name)}')" class="text-xs bg-red-50 text-red-600 font-bold px-2 py-1 rounded-lg hover:bg-red-100 transition">Scoate</button>
+                    ` : ''}
+                </div>`;
+            content.appendChild(div);
+        }
+    }
+
+    async function handleAddMember() {
+        const phone = document.getElementById('add-member-input').value.trim();
+        if (!phone) return;
+        const { data: exists } = await supabaseClient.from('icri_phones').select('phone_number').eq('phone_number', phone).maybeSingle();
+        if (!exists) { alert('Numărul ' + phone + ' nu există în rețeaua ICRI!'); return; }
+        const { data: alreadyIn } = await supabaseClient.from('icri_group_members').select('id').eq('group_id', activeGroup.id).eq('phone', phone).maybeSingle();
+        if (alreadyIn) { alert('Acest număr e deja în grup.'); return; }
+        await supabaseClient.from('icri_group_members').insert([{ group_id: activeGroup.id, phone, role: 'member' }]);
+        document.getElementById('add-member-input').value = '';
+        await renderGroupInfo();
+        await updateGroupMembersCount();
+    }
+
+    async function handleRemoveMember(phone, name) {
+        if (!confirm(`Scoți pe ${name} din grup?`)) return;
+        await supabaseClient.from('icri_group_members').delete().eq('group_id', activeGroup.id).eq('phone', phone);
+        await renderGroupInfo();
+        await updateGroupMembersCount();
+    }
+
+    async function handleMakeAdmin(phone) {
+        await supabaseClient.from('icri_group_members').update({ role: 'admin' }).eq('group_id', activeGroup.id).eq('phone', phone);
+        await renderGroupInfo();
+    }
+
+    async function handleRemoveAdmin(phone) {
+        await supabaseClient.from('icri_group_members').update({ role: 'member' }).eq('group_id', activeGroup.id).eq('phone', phone);
+        await renderGroupInfo();
+    }
+
+    async function handleLeaveGroup() {
+        if (!confirm('Ești sigur că vrei să părăsești grupul?')) return;
+        if (activeGroup.myRole === 'owner') { alert('Owner-ul nu poate părăsi grupul. Șterge grupul sau transferă rolul de owner mai întâi.'); return; }
+        await supabaseClient.from('icri_group_members').delete().eq('group_id', activeGroup.id).eq('phone', currentPhone);
+        closeGroupInfo();
+        closeGroupChat();
+        fetchGroups();
+    }
+
+    // ==================== UTILS ====================
+    function escapeHtml(text) {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return String(text || '').replace(/[&<>"']/g, m => map[m]);
+    }
+</script>
+</body>
+</html>
