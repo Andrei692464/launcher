@@ -3,16 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redirecționare...</title>
-    <!-- Redirecționare prin meta tag (siguranță după 0 secunde) -->
-    <meta http-equiv="refresh" content="0; url=https://frcraft.vercel.app/">
+    <title>FRCRAFT LAUNCHER</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 3rem;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-launch {
+            display: inline-block;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #0078d4;
+            text-decoration: none;
+            border-radius: 5px;
+            box-shadow: 0 4px 15px rgba(0, 120, 212, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .btn-launch:hover {
+            background-color: #005a9e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 120, 212, 0.6);
+        }
+
+        .btn-launch:active {
+            transform: translateY(1px);
+        }
+    </style>
 </head>
 <body>
-    <p>Dacă nu ești redirecționat automat, <a href="https://frcraft.vercel.app/">apasă aici</a>.</p>
 
-    <!-- Redirecționare instantanee prin JavaScript -->
-    <script>
-        window.location.href = "https://frcraft.vercel.app/";
-    </script>
+    <h1>FRCRAFT LAUNCHER</h1>
+    
+    <!-- Butonul deschide site-ul într-un tab nou (target="_blank") -->
+    <a href="https://frcraft.vercel.app/" target="_blank" class="btn-launch">
+        LANSEAZĂ JOCUL
+    </a>
+
 </body>
 </html>
