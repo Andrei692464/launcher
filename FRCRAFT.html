@@ -3,27 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRCraft în Iframe</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-        }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-    </style>
+    <title>Redirecționare...</title>
+    <!-- Redirecționare prin meta tag (siguranță după 0 secunde) -->
+    <meta http-equiv="refresh" content="0; url=https://frcraft.vercel.app/">
 </head>
 <body>
+    <p>Dacă nu ești redirecționat automat, <a href="https://frcraft.vercel.app/">apasă aici</a>.</p>
 
-    <iframe src="https://frcraft.vercel.app/" title="FRCraft">
-        Browser-ul tău nu suportă elemente de tip iframe. 
-        <a href="https://frcraft.vercel.app/">Apasă aici pentru a accesa site-ul</a>.
-    </iframe>
-
+    <!-- Redirecționare instantanee prin JavaScript -->
+    <script>
+        window.location.href = "https://frcraft.vercel.app/";
+    </script>
 </body>
 </html>
